@@ -1,33 +1,41 @@
 #include <stdlib.h>
+#include<math.h>
 #include <stdio.h>
 #include <netcdf.h>
 #include <iomanip>
+
 
 #include<vector>
 #include <fstream>
 #include<boost\algorithm\string.hpp>
 #include<boost\shared_array.hpp>
 #include<boost\program_options.hpp>
-#include<boost\program_options\parsers.hpp>
 
 using namespace std;
 
 #define FILE_NAME "fort.74.nc"    
 #define NX 8
 #define NY 11
-#define timestep 96
+//#define timestep 96
 #define ERRCODE 2
 #define ERR(e) {printf("Error: %s\n", nc_strerror(e)); exit(ERRCODE);}
 
 int main()
 {
+	float threshold;
+	cout<<"Enter the threshold value : ";
+	cin>>threshold;
 	int retval, ncid, ndims, nvars, ngatts, unlimdimid;
 
 	int nele = 0;
 	int node = 0;
+	int timestep=95;
+	int time;
+	bool hasTime = false;
 
 	vector<string> attnames;
 	attnames.push_back("windx");	 
+	attnames.push_back("windy");	 
 
 	if ((retval = nc_open(FILE_NAME, NC_NOWRITE, &ncid)))
 		return false;
@@ -44,13 +52,22 @@ int main()
 		if (finder.find("nele") != -1)
 			nele = lenp;
 		else if (finder.find("node") != -1)
-			node = lenp;		
+			node = lenp;	
+		else if (finder.find("time") != -1)
+		 {
+			 time = lenp;
+			 if (time > 1)
+			 hasTime = true;
+		 }
 	}
 
-	vector<boost::shared_array<float>> depth;
+	vector<boost::shared_array<float>> windx;
+	vector<boost::shared_array<float>> windy;
+	boost::shared_array<float> sa_windy;
+	boost::shared_array<float> sa_windx;
+	windx.push_back(boost::shared_array<float>(new float[node]));	
+	windy.push_back(boost::shared_array<float>(new float[node]));	
 
-	for (int i = 0; i < attnames.size(); ++i)
-		depth.push_back(boost::shared_array<float>(new float[node]));	
 
 	for (int i = 0; i < nvars; ++i)
 	{
@@ -67,16 +84,18 @@ int main()
 					if (attnames[j] == "windx")
 					{	
 						size_t end[] = {1,node};
-						size_t start[] = {95,0};
-						nc_get_vara_float (ncid, i, start, end, depth[j].get());
-						boost::shared_array<float> sa_wind= depth[0];
-						for ( int z = 0; z < 30; z++ )
-						{
-							std::cout<<setprecision(3);
-							cout<<"\n";
-							cout << sa_wind[z];
-						}
+						size_t start[] = {timestep,0};
+						nc_get_vara_float (ncid, i, start, end, windx[0].get());
+						sa_windx= windx[0];
+						found = true;
+					}
 
+					else if (attnames[j] == "windy")
+					{	
+						size_t end[] = {1,node};
+						size_t start[] = {timestep,0};
+						nc_get_vara_float (ncid, i, start, end, windy[0].get());
+						sa_windy= windy[0];
 						found = true;
 					}
 
@@ -86,12 +105,19 @@ int main()
 		}		 
 	}
 
-
+	for(int p=0;p<node;p++)
+	{
+		if((sqrt(sa_windx[p]*sa_windx[p]+sa_windy[p]*sa_windy[p])) > threshold)
+		{
+			cout<<"\n"<<"Node : "<<p;
+		    cout<<"\n"<<"Wind Speed : "<<(sqrt(sa_windx[p]*sa_windx[p]+sa_windy[p]*sa_windy[p]));
+		}
+	}
 	if ((retval = nc_close(ncid)))
 		ERR(retval);
 
-	printf("\n");
-	printf("SUCCESS reading time data from the file %s!\n", FILE_NAME);
+	printf("\n\n\n");
+	printf("Success reading the file %s!\n", FILE_NAME);
 	system("PAUSE");
 	return 0;
 }
