@@ -35,7 +35,7 @@ int main()
 	int nele = 0;
 	int node = 0;
 	int timestep=95;
-	float data_out[96];
+	float data_out[10];
 	int time;
 	bool hasTime = false;
 
@@ -71,15 +71,18 @@ int main()
 	vector<boost::shared_array<float>> windy;
 	boost::shared_array<float> sa_windy;
 	boost::shared_array<float> sa_windx;
-	windx.push_back(boost::shared_array<float>(new float[timestep]));	
-	windy.push_back(boost::shared_array<float>(new float[timestep]));	
+	windx.push_back(boost::shared_array<float>(new float[node]));	
+	windy.push_back(boost::shared_array<float>(new float[node]));	
 
 	vector<boost::shared_array<float>> testing_windx;
 	vector<boost::shared_array<float>> testing_windy;
 
-	vector<boost::shared_array<double>> testing;
+	/*vector<boost::shared_array<double>> testing;
 	for (int i = 0; i < attnames.size(); ++i)
-		 testing.push_back(boost::shared_array<double>(new double[node]));
+	{
+	testing_windx.push_back(boost::shared_array<double>(new double[node]));
+	testing_windy.push_back(boost::shared_array<double>(new double[node]));
+	}*/
 
 
 	for (int i = 0; i < nvars; ++i)
@@ -96,32 +99,32 @@ int main()
 				{
 					if (attnames[j] == "windx")
 					{	
-						int countNodex=1;
+						int countNodex=10;
 						for(int recTime=0;recTime<10;recTime++)
 						{
-						size_t start[] = {0,recTime};
-						size_t end[] = {10,countNodex};
-						/*size_t start[] = {recTime,0};
-						size_t end[] = {countNodex,10};*/
-						nc_get_vara_float (ncid, i, start, end, windx[0].get());
-						//sa_windx= windx[0];
-						testing_windx.push_back(windx[0]);
+							size_t start[] = {0,recTime};
+							size_t end[] = {10,countNodex};
+							/*size_t start[] = {recTime,0};
+							size_t end[] = {countNodex,10};*/
+							nc_get_vara_float (ncid, i, start, end, windx[0].get());
+							//sa_windx= windx[0];
+							testing_windx.push_back(windx[0]);
 						}
 						found = true;
 					}
 
 					else if (attnames[j] == "windy")
 					{	
-						int countNodey=1;						
+						int countNodey=10;						
 						for(int recTimeWinY=0;recTimeWinY<10;recTimeWinY++)
 						{
-						size_t start[] = {0,recTimeWinY};
-						size_t end[] = {10,countNodey};
-						/*size_t start[] = {recTimeWinY,0};
-						size_t end[] = {countNodey,10};*/
-						nc_get_vara_float (ncid, i, start, end, windy[0].get());
-						//sa_windy= windy[0];
-						testing_windy.push_back(windy[0]);
+							size_t start[] = {0,recTimeWinY};
+							size_t end[] = {10,countNodey};
+							/*size_t start[] = {recTimeWinY,0};
+							size_t end[] = {countNodey,10};*/
+							nc_get_vara_float (ncid, i, start, end, windy[0].get());
+							//sa_windy= windy[0];
+							testing_windy.push_back(windy[0]);
 						}
 						found = true;
 					}
@@ -137,58 +140,64 @@ int main()
 	{
 		for(int timeStepLoop=0;timeStepLoop<10;timeStepLoop++)
 		{
-			printf("\nPrint windx", testing_windx[timeStepLoop].get()[loopNode]);
-			/*sa_windx = testing_windy[loopNode];
-			printf("\nPrinting sa_windx",sa_windx);
-			printf("\nPrinting",+sa_windx[timeStepLoop]);*/
-		}		
+			cout<<"\nPrint windx    "<<testing_windx[loopNode].get()[timeStepLoop];
+			cout<<"\nPrint windy    "<<testing_windy[loopNode].get()[timeStepLoop];
+			if((sqrt((testing_windx[loopNode].get()[timeStepLoop])+(testing_windy[loopNode].get()[timeStepLoop]))) > threshold)
+			{
+				nodeCount=nodeCount+1;
+				data_out[printNode]= timeStepLoop;
+				printNode=printNode+1;
+				//break;
+			}
+
+		}
 	}
 
-	
-	//for(int p=0;p<30;p++)
-	//{
-	//	/*cout<<"\n**********************";
-	//	cout<<"\nNode : "<<p;
-	//	cout<<"\nWindx : "<<sa_windx[p];
-	//	cout<<"\nWindy : "<<sa_windy[p];*/
-	//	if((sqrt(sa_windx[p]*sa_windx[p]+sa_windy[p]*sa_windy[p])) > threshold)
-	//	{
-	//		cout<<"\n"<<"Node : "<<p;
-	//		cout<<"\n"<<"Wind Speed : "<<(sqrt(sa_windx[p]*sa_windx[p]+sa_windy[p]*sa_windy[p]));
-	//		nodeCount=nodeCount+1;
-	//		data_out[printNode]= p;
-	//		printNode=printNode+1;
-	//	}
-	//	    
-	//}
 
-	/*int dimids[2];
-	int node_dimid;
-	int varid;
-	
+		//for(int p=0;p<30;p++)
+		//{
+		//	/*cout<<"\n**********************";
+		//	cout<<"\nNode : "<<p;
+		//	cout<<"\nWindx : "<<sa_windx[p];
+		//	cout<<"\nWindy : "<<sa_windy[p];*/
+		//	if((sqrt(sa_windx[p]*sa_windx[p]+sa_windy[p]*sa_windy[p])) > threshold)
+		//	{
+		//		cout<<"\n"<<"Node : "<<p;
+		//		cout<<"\n"<<"Wind Speed : "<<(sqrt(sa_windx[p]*sa_windx[p]+sa_windy[p]*sa_windy[p]));
+		//		nodeCount=nodeCount+1;
+		//		data_out[printNode]= p;
+		//		printNode=printNode+1;
+		//	}
+		//	    
+		//}
 
-	if ((retval = nc_create(OUTPUT_FILE_NAME, NC_CLOBBER, &nc_output_file_id)))
+		int dimids[2];
+		int node_dimid;
+		int varid;
+
+
+		if ((retval = nc_create(OUTPUT_FILE_NAME, NC_CLOBBER, &nc_output_file_id)))
 		ERR(retval);
-	if ((retval = nc_def_dim(nc_output_file_id, "node", nodeCount, &node_dimid)))
+		if ((retval = nc_def_dim(nc_output_file_id, "time", nodeCount, &node_dimid)))
 		ERR(retval);	
 
-	dimids[0] = node_dimid;
+		dimids[0] = node_dimid;
 
-	if ((retval = nc_def_var(nc_output_file_id, "node", NC_INT, 1,
+		if ((retval = nc_def_var(nc_output_file_id, "time", NC_INT, 1,
 		dimids, &varid)))
 		ERR(retval);
-	if ((retval = nc_enddef(nc_output_file_id)))
+		if ((retval = nc_enddef(nc_output_file_id)))
 		ERR(retval);
-	if ((retval = nc_put_var_float(nc_output_file_id, varid, &data_out[0])))
+		if ((retval = nc_put_var_float(nc_output_file_id, varid, &data_out[0])))
 		ERR(retval);
-	if ((retval = nc_close(nc_output_file_id)))
-		ERR(retval);*/
-
-	if ((retval = nc_close(ncid)))
+		if ((retval = nc_close(nc_output_file_id)))
 		ERR(retval);
 
-	printf("\n\n\n");
-	printf("Success reading the file %s!\n", FILE_NAME);
-	printf("\nSuccess creating the output file %s!\n", OUTPUT_FILE_NAME);
-	return 0;
-}
+		if ((retval = nc_close(ncid)))
+			ERR(retval);
+
+		printf("\n\n\n");
+		printf("Success reading the file %s!\n", FILE_NAME);
+		printf("\nSuccess creating the output file %s!\n", OUTPUT_FILE_NAME);
+		return 0;
+	}
