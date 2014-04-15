@@ -77,14 +77,6 @@ int main()
 	vector<boost::shared_array<float>> testing_windx;
 	vector<boost::shared_array<float>> testing_windy;
 
-	/*vector<boost::shared_array<double>> testing;
-	for (int i = 0; i < attnames.size(); ++i)
-	{
-	testing_windx.push_back(boost::shared_array<double>(new double[node]));
-	testing_windy.push_back(boost::shared_array<double>(new double[node]));
-	}*/
-
-
 	for (int i = 0; i < nvars; ++i)
 	{
 		using namespace std;
@@ -99,15 +91,12 @@ int main()
 				{
 					if (attnames[j] == "windx")
 					{	
-						int countNodex=10;
+						int countNodex=1;
 						for(int recTime=0;recTime<10;recTime++)
 						{
 							size_t start[] = {0,recTime};
 							size_t end[] = {10,countNodex};
-							/*size_t start[] = {recTime,0};
-							size_t end[] = {countNodex,10};*/
 							nc_get_vara_float (ncid, i, start, end, windx[0].get());
-							//sa_windx= windx[0];
 							testing_windx.push_back(windx[0]);
 						}
 						found = true;
@@ -115,15 +104,12 @@ int main()
 
 					else if (attnames[j] == "windy")
 					{	
-						int countNodey=10;						
+						int countNodey=1;						
 						for(int recTimeWinY=0;recTimeWinY<10;recTimeWinY++)
 						{
 							size_t start[] = {0,recTimeWinY};
 							size_t end[] = {10,countNodey};
-							/*size_t start[] = {recTimeWinY,0};
-							size_t end[] = {countNodey,10};*/
 							nc_get_vara_float (ncid, i, start, end, windy[0].get());
-							//sa_windy= windy[0];
 							testing_windy.push_back(windy[0]);
 						}
 						found = true;
