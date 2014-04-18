@@ -4,7 +4,6 @@
 #include <netcdf.h>
 #include <iomanip>
 
-
 #include<vector>
 #include <fstream>
 #include<boost\algorithm\string.hpp>
@@ -18,7 +17,6 @@ using namespace std;
 #define NX 8
 #define NY 11
 #define NTIME 96
-//#define timestep 96
 #define ERRCODE 2
 #define ERR(e) {printf("Error: %s\n", nc_strerror(e)); exit(ERRCODE);}
 
@@ -27,6 +25,7 @@ int main()
 	float threshold;
 	int nodeCount=0;
 	int printNode = 0;
+	int data_time[NTIME];
 	cout<<"Enter the threshold value : ";
 	cin>>threshold;
 	int retval, ncid, ndims, nvars, ngatts, unlimdimid;
@@ -35,7 +34,7 @@ int main()
 	int nele = 0;
 	int node = 0;
 	int timestep=95;
-	float data_out[10];
+	float data_out[96];
 	int time;
 	bool hasTime = false;
 
@@ -46,7 +45,7 @@ int main()
 	if ((retval = nc_open(FILE_NAME, NC_NOWRITE, &ncid)))
 		return false;
 
-	nc_inq(ncid, &ndims, &nvars, &ngatts, &unlimdimid);
+	nc_inq(ncid, &ndims, &nvars, &ngatts, &unlimdimid);	
 
 	for (int i = 0; i < ndims; ++i)
 	{
@@ -62,6 +61,7 @@ int main()
 		else if (finder.find("time") != -1)
 		{
 			time = lenp;
+			nc_get_var_int(ncid, i, &data_time[0]);
 			if (time > 1)
 				hasTime = true;
 		}
@@ -92,12 +92,13 @@ int main()
 					if (attnames[j] == "windx")
 					{	
 						int countNodex=1;
-						for(int recTime=0;recTime<10;recTime++)
+						for(int incNode=0;incNode<10;incNode++)
 						{
-							size_t start[] = {0,recTime};
-							size_t end[] = {10,countNodex};
-							nc_get_vara_float (ncid, i, start, end, windx[0].get());
-							testing_windx.push_back(windx[0]);
+							size_t start[] = {0,incNode};
+							size_t end[] = {95,countNodex};
+							boost::shared_array<float> temp(new float[node]);
+							nc_get_vara_float (ncid, i, start, end, temp.get());
+							testing_windx.push_back(temp);
 						}
 						found = true;
 					}
@@ -105,16 +106,16 @@ int main()
 					else if (attnames[j] == "windy")
 					{	
 						int countNodey=1;						
-						for(int recTimeWinY=0;recTimeWinY<10;recTimeWinY++)
+						for(int incNodeY=0;incNodeY<10;incNodeY++)
 						{
-							size_t start[] = {0,recTimeWinY};
-							size_t end[] = {10,countNodey};
-							nc_get_vara_float (ncid, i, start, end, windy[0].get());
-							testing_windy.push_back(windy[0]);
+							size_t start[] = {0,incNodeY};
+							size_t end[] = {95,countNodey};
+							boost::shared_array<float> temp(new float[node]);
+							nc_get_vara_float (ncid, i, start, end, temp.get());
+							testing_windy.push_back(temp);
 						}
 						found = true;
 					}
-
 				}
 			}
 
@@ -124,66 +125,46 @@ int main()
 
 	for(int loopNode=0;loopNode<10;loopNode++)
 	{
-		for(int timeStepLoop=0;timeStepLoop<10;timeStepLoop++)
+		for(int timeStepLoop=0;timeStepLoop<96;timeStepLoop++)
 		{
-			cout<<"\nPrint windx    "<<testing_windx[loopNode].get()[timeStepLoop];
-			cout<<"\nPrint windy    "<<testing_windy[loopNode].get()[timeStepLoop];
 			if((sqrt((testing_windx[loopNode].get()[timeStepLoop])+(testing_windy[loopNode].get()[timeStepLoop]))) > threshold)
 			{
 				nodeCount=nodeCount+1;
-				data_out[printNode]= timeStepLoop;
+				data_out[printNode]= data_time[timeStepLoop];
 				printNode=printNode+1;
-				//break;
+				break;
 			}
 
 		}
 	}
 
-
-		//for(int p=0;p<30;p++)
-		//{
-		//	/*cout<<"\n**********************";
-		//	cout<<"\nNode : "<<p;
-		//	cout<<"\nWindx : "<<sa_windx[p];
-		//	cout<<"\nWindy : "<<sa_windy[p];*/
-		//	if((sqrt(sa_windx[p]*sa_windx[p]+sa_windy[p]*sa_windy[p])) > threshold)
-		//	{
-		//		cout<<"\n"<<"Node : "<<p;
-		//		cout<<"\n"<<"Wind Speed : "<<(sqrt(sa_windx[p]*sa_windx[p]+sa_windy[p]*sa_windy[p]));
-		//		nodeCount=nodeCount+1;
-		//		data_out[printNode]= p;
-		//		printNode=printNode+1;
-		//	}
-		//	    
-		//}
-
-		int dimids[2];
-		int node_dimid;
-		int varid;
+	int dimids[2];
+	int node_dimid;
+	int varid;
 
 
-		if ((retval = nc_create(OUTPUT_FILE_NAME, NC_CLOBBER, &nc_output_file_id)))
+	if ((retval = nc_create(OUTPUT_FILE_NAME, NC_CLOBBER, &nc_output_file_id)))
 		ERR(retval);
-		if ((retval = nc_def_dim(nc_output_file_id, "time", nodeCount, &node_dimid)))
+	if ((retval = nc_def_dim(nc_output_file_id, "time", nodeCount, &node_dimid)))
 		ERR(retval);	
 
-		dimids[0] = node_dimid;
+	dimids[0] = node_dimid;
 
-		if ((retval = nc_def_var(nc_output_file_id, "time", NC_INT, 1,
+	if ((retval = nc_def_var(nc_output_file_id, "time", NC_INT, 1,
 		dimids, &varid)))
 		ERR(retval);
-		if ((retval = nc_enddef(nc_output_file_id)))
+	if ((retval = nc_enddef(nc_output_file_id)))
 		ERR(retval);
-		if ((retval = nc_put_var_float(nc_output_file_id, varid, &data_out[0])))
+	if ((retval = nc_put_var_float(nc_output_file_id, varid, &data_out[0])))
 		ERR(retval);
-		if ((retval = nc_close(nc_output_file_id)))
+	if ((retval = nc_close(nc_output_file_id)))
 		ERR(retval);
 
-		if ((retval = nc_close(ncid)))
-			ERR(retval);
+	if ((retval = nc_close(ncid)))
+		ERR(retval);
 
-		printf("\n\n\n");
-		printf("Success reading the file %s!\n", FILE_NAME);
-		printf("\nSuccess creating the output file %s!\n", OUTPUT_FILE_NAME);
-		return 0;
-	}
+	printf("\n\n\n");
+	printf("Success reading the file %s!\n", FILE_NAME);
+	printf("\nSuccess creating the output file %s!\n", OUTPUT_FILE_NAME);
+	return 0;
+}
